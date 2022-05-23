@@ -3,7 +3,7 @@
 # Libraries to install: Numpy, Pygame, math, Matplotlib
 #-------------------------------------------------------------------
 import numpy as np
-from math import acos, atan2, fabs, pi, tau, sqrt, sin, cos, remainder
+from math import acos, atan2, pi, tau, sqrt, sin, cos, remainder
 from nametoXY import WRD_XY
 from arm_para import getLength, getmass, getgrv
 import matplotlib.pyplot as plt
@@ -66,7 +66,7 @@ def f(z,t):
     
 
     #------------------------------------------Motion Equations-----------------------------------------------
-    # Free pendulum 
+    # Free  
     if a == 1:
         D1 = -t1d*damp
         D2 = -t2d*damp
@@ -78,7 +78,7 @@ def f(z,t):
         t2dd = -((D1*l2*m2*cos(t1 - t2) - (l1*(l2**2*m2**2*t2d**2*sin(2*(t1 - t2)) 
         + (m1 + m2)*(2*D2 + 2*l1*l2*m2*t1d**2*sin(t1 - t2) + g*l2*m2*sin(2*t1 - t2) 
         - g*l2*m2*sin(t2))))/2)/(l1*l2**2*m2*(m1 + m2 - m2*cos(t1 - t2)**2)))
-    # Controlled pendulum
+    # Controlled  
     if a == 2 or a==3:
         ### ---------------------------------------  CONTROL SYSTEM PD controller  ----------------------------
         
@@ -136,58 +136,8 @@ def f(z,t):
         t2dd = -((F1*l2*m2*cos(t1 - t2) - (l1*(l2**2*m2**2*t2d**2*sin(2*(t1 - t2)) 
         + (m1 + m2)*(2*F2 + 2*l1*l2*m2*t1d**2*sin(t1 - t2) + g*l2*m2*sin(2*t1 - t2) 
         - g*l2*m2*sin(t2))))/2)/(l1*l2**2*m2*(m1 + m2 - m2*cos(t1 - t2)**2)))
-    # Game
-    if a == 4:
-        ### ---------------------------------------  CONTROL SYSTEM PD controller  ----------------------------
-        #proportional
-        er1 = (th1 - t1)
-        er2 = (th2 - t2)
-        #Derivative
-        erd1 = -t1d
-        erd2 = -t2d
-        #controller 1: Torque link 1 with deadzone
-        if abs(er1)>0.01:
-            F1 = g*l1*(m1 + m2)*sin(t1) + kp*er1 + kd*erd1
-            
-        else: 
-            F1 = g*l1*(m1 + m2)*sin(t1)
-
-        #controller 2: Torque link 2 with deadzone
-        if abs(er2)>0.01:
-            F2 = m2*g*l2*sin(t2) + kp*er2 + kd*erd2
-        else:
-            F2 = m2*g*l2*sin(t2)
-        
-        #save previous error 
-        pr_er1 = er1
-        pr_er2 = er2
-        
-        pr_t = t
-        er1_ar.append(er1)
-        er2_ar.append(er2)
-        time_ar.append(t)
-        ### ----------------------------------- Path (error acceptance = 0.07) ------------------------------------------
-        if abs(er1)<error_accept and abs(er2)<error_accept:
-            if n==0:
-                trace_color = LT_BLUE
-            else:
-                trace_color = BLUE
-            if n<len(tdes1_ar):
-                th1 = tdes1_ar[n]
-                th2 = tdes2_ar[n]
-                n=n+1
-            if n == len(tdes1_ar):
-                stop_time = t
-
-        tor1_ar.append(F1)
-
-        t1dd = -((F2*l1*cos(t1 - t2) + (l2*(-2*F1 + g*l1*(2*m1 + m2)*sin(t1) 
-        + g*l1*m2*sin(t1 - 2*t2) + 2*l1*l2*m2*t2d**2* 
-        + sin(t1 - t2) + l1**2*m2*t1d**2*sin(2*(t1 - t2))))/2)/(l1**2*l2*(m1 + m2 - m2*cos(t1 - t2)**2)))
-
-        t2dd = -((F1*l2*m2*cos(t1 - t2) - (l1*(l2**2*m2**2*t2d**2*sin(2*(t1 - t2)) 
-        + (m1 + m2)*(2*F2 + 2*l1*l2*m2*t1d**2*sin(t1 - t2) + g*l2*m2*sin(2*t1 - t2) 
-        - g*l2*m2*sin(t2))))/2)/(l1*l2**2*m2*(m1 + m2 - m2*cos(t1 - t2)**2)))
+    
+    
     
     th1_ar.append(th1)
     th2_ar.append(th2)
@@ -265,7 +215,7 @@ def target(th1,th2):
 #GUI input: text, reset, waypoints(mouse position) + Game(colision detection rect, circle)  
 def intro_get_mode():
     global y, tdes1_ar, tdes2_ar,l1,l2,m1,m2,g,damp, kp, kd, error_accept,n, trace_color, speed,th1,th2, offset,trace
-    global drop_click
+    global drop_click, timer_count, game_running, game_success, game_over, got_obj
     loop = 1
     screen.fill(LT_BLUE)
     input_rect1 = pygame.Rect(w/2-120, h/2, 50, 32)
@@ -290,6 +240,7 @@ def intro_get_mode():
                     y = np.array([0, 0, 0, 0])
                     loop = 0
                 if input_rect2.collidepoint(event.pos):
+                    timer_count = 0.0
                     mode = 2
                     tdes1_ar = []
                     tdes2_ar = []
@@ -303,6 +254,11 @@ def intro_get_mode():
                     loop = 0
                 if input_rect3.collidepoint(event.pos):
                     mode = 3
+                    timer_count = 0.0
+                    got_obj = False
+                    game_over = False
+                    game_success = False
+                    game_running = False
                     offset = (w/2,h/2)
                     drop_click = pygame.Rect(offset[0]-reach,offset[1]-reach, reach*2, reach*2)
                     tdes1_ar = []
@@ -392,7 +348,7 @@ def render(point1, point2):
 
     return (x2, y2)
 def render_game(point1, point2):
-    global game_over, game_success, got_obj
+    global game_over, game_success, got_obj, game_running
     #arm visual
     scale = 5
     x1, y1,  = int(point1[0]), int(point1[1])
@@ -425,10 +381,12 @@ def render_game(point1, point2):
             pygame.draw.rect(screen, dRED, rect_lvl1[i])
             if rect_col(tip,rect_lvl1[i]) or circle_col(tip,circle):
                 if game_success==False:
+                    game_running=False
                     game_over=True
         
         if circle_col(tip,circle_tar):
             if game_over==False:
+                game_running=False
                 game_success = True
 
         pygame.draw.line(screen, BLACK, offset, (x1,y1), 5)
@@ -451,12 +409,14 @@ def render_game(point1, point2):
             if rect_col(tip,rect_lvl2[i]) or circle_col(tip,circle):
                 if game_success==False:
                     game_over=True
+                    game_running = False
         if circle_col(tip,circle_tar):
             got_obj= True
         if rect_col(tip,box_tar) and got_obj==True:
             if game_over==False:
                 got_obj=False
                 game_success = True
+                game_running = False
 
         pygame.draw.line(screen, BLACK, offset, (x1,y1), 5)
         pygame.draw.line(screen, BLACK, (x1,y1), (x2,y2), 5)
@@ -621,15 +581,16 @@ def pause():
         # screen.fill((0, 0, 0))
         clock.tick(60)
 def skip(spd):
-    if spd < 16000:
+    if spd < 360000:
         spd = spd*2
     return spd
 def slow(spd):
-    if spd > 15:
+    if spd > 30:
         spd = spd/2
     return spd
 def get_text_input():
-    user_text = ''
+    global user_text
+    user_text=''
     loop = 1
     text = textfont.render("Type your name and press Enter", False, (0, 0, 0))
     screen.blit(text, (word_offset[0]-50, word_offset[1]-20))
@@ -690,7 +651,7 @@ def mouse_pos_pend(clk):
     
     return ikin(posit)
 def waypoints():
-    global tdes1_ar, tdes2_ar,n,way_nbr,wayx_arr, wayy_arr,screen
+    global tdes1_ar, tdes2_ar,n,way_nbr,wayx_arr, wayy_arr,screen, game_running, start_time
     tdes1_ar = []
     tdes2_ar = []
     n=0
@@ -716,16 +677,15 @@ def waypoints():
                 if event.key == K_RETURN:
                     loop = 0
 
-        way_nbr = "waypoint={}".format(nbr_points)     
-        pygame.draw.rect(screen, color, way_rect)
-        text_surface = myfont.render(way_nbr, True, WHITE)
-        screen.blit(text_surface, (way_rect.x+5, way_rect.y+5))
-        way_rect.w = max(100, text_surface.get_width()+10) 
+        way_nbr = "waypoint={}".format(nbr_points)
+        button(way_rect, way_nbr, RED, 5)
 
         if wayx_arr:
             for i in range(len(wayx_arr)):
                 pygame.draw.circle(screen, BLACK, (wayx_arr[i], wayy_arr[i]), 5, 2)
-
+        if game_running==False:
+            start_time = t
+            game_running=True
         pygame.display.update()
         clock.tick(60)
 
@@ -748,7 +708,15 @@ def circle_col(point,circle):
     if d<r:
         return True
     return False
-
+def button(rect, text, color=(100,100,255), shape=10):
+    pygame.draw.rect(screen, color, rect, 0, -1, shape, shape, shape, shape)
+    text_surface1 = myfont.render(text, True, WHITE)
+    screen.blit(text_surface1, (rect.x + 5, rect.y + 5))
+    rect.w = max(20, text_surface1.get_width() + 10)
+def text_var(text, variable, offset, rounding = 1):
+    var = text.format(round(variable, rounding))
+    text1 = textfont.render(var, False, (0, 0, 0))
+    screen.blit(text1, offset)
 l1,l2,m1,m2,g,damp, kp, kd, error_accept,n = reset_par()
 
 w, h = 1550, 800
@@ -795,6 +763,7 @@ prev_nrg = None
 t = 0.0
 start_time = 0.0
 stop_time = 0.0
+timer_count = 0.0
 del_t = 0.02
 pot,kin,tot = 0.0,0.0,0.0
 t10 = tdes1_ar[0]
@@ -833,6 +802,7 @@ add_m2 = pygame.Rect(param_offset[0]+210,param_offset[1], 30, 30)
 sub_m2 = pygame.Rect(param_offset[0]+210,param_offset[1]+40, 30, 30)
 
 add_dp = pygame.Rect(param_offset[0]+300,param_offset[1], 30, 30)
+
 sub_dp = pygame.Rect(param_offset[0]+300,param_offset[1]+40, 30, 30)
 
 reach = int((l1+l2)*100)
@@ -841,7 +811,7 @@ drop_click = pygame.Rect(offset[0]-reach,offset[1]-reach, reach*2, reach*2)
 
 reset_param = pygame.Rect(param_offset[0]+360,param_offset[1], 30, 30)
 # ---------------  Controlled: create rectangle for name
-user_text = ''
+user_text = 'Your Name?'
 in_word = pygame.Rect(word_offset[0], word_offset[1], 140, 32)
 way_nbr = 'waypoints'
 way_rect = pygame.Rect(way_offset[0], way_offset[1], 140, 32)
@@ -859,6 +829,7 @@ add_er = pygame.Rect(param_offset[0]+150,param_offset[1], 30, 30)
 sub_er = pygame.Rect(param_offset[0]+150,param_offset[1]+40, 30, 30)
 
 #game
+game_running = False
 game_over = False
 game_success = False
 retry_rect = pygame.Rect(w/2+500,h/2+200, 100, 100)
@@ -879,7 +850,6 @@ rect1 = pygame.Rect(offset[0]+70, offset[1],100,10)
 rect2 = pygame.Rect(offset[0]-25, offset[1]-210,30,150)
 rect3 = pygame.Rect(offset[0]-250, offset[1]+10,280,100)
 rect4 = pygame.Rect(offset[0]+100, offset[1]-100,5,100)
-circle_tar = [offset[0]-150, offset[1]-100, 5]
 box_tar = pygame.Rect(offset[0]+100, offset[1]+50,5,5) 
 move_x = 0
 rect_lvl2 = [rect1,rect2,rect3,rect4]
@@ -989,102 +959,42 @@ while 1:
         pygame.draw.circle(screen, BLUE, (int(plt1_offset[0]+prev_angle[0]),int(plt1_offset[1]+prev_angle[1])), 3)
         
         #-------------- Buttons: arm param (l,m,dp, reset) , exit, timer
-        pygame.draw.rect(screen, param_button_color, add_l1, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+L1", True, WHITE)
-        screen.blit(text_surface1, (add_l1.x+5, add_l1.y+5))
-        add_l1.w = max(20, text_surface1.get_width()+10) 
+        button(add_l1, "+L1")
+        button(sub_l1, "-L1")
+        button(add_l2, "+L2")
+        button(sub_l2, "-L2")
 
-        pygame.draw.rect(screen, param_button_color, sub_l1, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-L1", True, WHITE)
-        screen.blit(text_surface1, (sub_l1.x+5, sub_l1.y+5))
-        sub_l1.w = max(20, text_surface1.get_width()+10) 
+        button(add_m1, "+m1")
+        button(sub_m1, "-m1")
+        button(add_m2, "+m2")
+        button(sub_m2, "-m2")
 
-        pygame.draw.rect(screen, param_button_color, add_l2, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+l2", True, WHITE)
-        screen.blit(text_surface1, (add_l2.x+5, add_l2.y+5))
-        add_l2.w = max(20, text_surface1.get_width()+10) 
+        button(add_dp, "+dp")
+        button(sub_dp, "-dp")
 
-        pygame.draw.rect(screen, param_button_color, sub_l2, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-l2", True, WHITE)
-        screen.blit(text_surface1, (sub_l2.x+5, sub_l2.y+5))
-        sub_l2.w = max(20, text_surface1.get_width()+10) 
+        button(reset_param, "reset")
 
-        pygame.draw.rect(screen, param_button_color, add_m1, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+m1", True, WHITE)
-        screen.blit(text_surface1, (add_m1.x+5, add_m1.y+5))
-        add_m1.w = max(20, text_surface1.get_width()+10) 
+        button(go_back, "back", BLUE)
 
-        pygame.draw.rect(screen, param_button_color, sub_m1, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-m1", True, WHITE)
-        screen.blit(text_surface1, (sub_m1.x+5, sub_m1.y+5))
-        sub_m1.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, param_button_color, add_m2, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+m2", True, WHITE)
-        screen.blit(text_surface1, (add_m2.x+5, add_m2.y+5))
-        add_m2.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, param_button_color, sub_m2, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-m2", True, WHITE)
-        screen.blit(text_surface1, (sub_m2.x+5, sub_m2.y+5))
-        sub_m2.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, param_button_color, add_dp, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+dp", True, WHITE)
-        screen.blit(text_surface1, (add_dp.x+5, add_dp.y+5))
-        add_dp.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, param_button_color, sub_dp, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-dp", True, WHITE)
-        screen.blit(text_surface1, (sub_dp.x+5, sub_dp.y+5))
-        sub_dp.w = max(20, text_surface1.get_width()+10)
-
-        pygame.draw.rect(screen, param_button_color, reset_param, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("reset", True, WHITE)
-        screen.blit(text_surface1, (reset_param.x+5, reset_param.y+5))
-        reset_param.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, BLUE, go_back, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("Back", True, WHITE)
-        screen.blit(text_surface1, (go_back.x+5, go_back.y+5))
-        go_back.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, BLUE, ODE_method_rect)
         if ode==0:
-            text_surface1 = textfont.render("ODE RK4", True, WHITE)
+            text_surface1 = "ODE RK4"
         elif ode==1:
-            text_surface1 = textfont.render("ODE midpoint", True, WHITE)
+            text_surface1 = "ODE midpoint"
         elif ode==2:
-            text_surface1 = textfont.render("ODE Euler", True, WHITE)
-        screen.blit(text_surface1, (ODE_method_rect.x+5, ODE_method_rect.y+5))
-        ODE_method_rect.w = max(20, text_surface1.get_width()+10) 
+            text_surface1 = "ODE Euler"
+        button(ODE_method_rect, text_surface1, BLUE, 5)
+
+        #workspace
+        pygame.draw.circle(screen, RED, offset, int((l1 + l2) * 100), 2)
+        pygame.draw.circle(screen, GREEN, offset, int(abs(l1 - l2) * 100), 2)
 
         #text
-        time_string = 'Time: {} seconds'.format(round(t,1))
-        text = myfont.render(time_string, False, (0, 0, 0))
-        screen.blit(text, (10,40))
-        
-        pygame.draw.circle(screen, RED, offset, int((l1+l2)*100), 2)
-        pygame.draw.circle(screen, GREEN, offset, int(abs(l1-l2)*100), 2)
-        link1 = 'L1={}'.format(round(l1,1))
-        text = textfont.render(link1, False, (0, 0, 0))
-        screen.blit(text, (param_offset[0],param_offset[1]-20))
-
-        link2 = 'L2={}'.format(round(l2,1))
-        text = textfont.render(link2, False, (0, 0, 0))
-        screen.blit(text, (param_offset[0]+60,param_offset[1]-20))
-
-        mass1 = 'm1={}'.format(round(m1,1))
-        text = textfont.render(mass1, False, (0, 0, 0))
-        screen.blit(text, (param_offset[0]+150,param_offset[1]-20))
-
-        mass2 = 'm2={}'.format(round(m2,1))
-        text = textfont.render(mass2, False, (0, 0, 0))
-        screen.blit(text, (param_offset[0]+210,param_offset[1]-20))
-
-        mass1 = 'damp={}'.format(round(damp,1))
-        text = textfont.render(mass1, False, (0, 0, 0))
-        screen.blit(text, (param_offset[0]+300,param_offset[1]-20))
+        text_var('Time: {} seconds', t, (10,40))
+        text_var('L1={}', l1, (param_offset[0],param_offset[1]-20))
+        text_var('L2={}', l2, (param_offset[0]+60,param_offset[1]-20))
+        text_var('m1={}', m1, (param_offset[0]+150,param_offset[1]-20))
+        text_var('m2={}', m2, (param_offset[0]+210,param_offset[1]-20))
+        text_var('damp={}', damp, (param_offset[0]+300,param_offset[1]-20))
 
         text = textfontXL.render("Click anywhere in the circle", False, (0, 0, 0))
         screen.blit(text, (offset[0]-150, offset[1]+250))
@@ -1203,11 +1113,11 @@ while 1:
         if sw == False:
             error = [t-time_counter, angle[0], pipi(th1_ar[-1])]
             text = textfontXL.render("Theta 1 VS Desired angle:", False, (0, 0, 0))
-            txt_switch = 'Show theta 2'
+            txt_switch = 'Show t2'
         else:
             error = [t-time_counter, angle[1], pipi(th2_ar[-1])]
             text = textfontXL.render("Theta 2 VS Desired angle:", False, (0, 0, 0))
-            txt_switch = 'Show theta 1'
+            txt_switch = 'Show t1'
         screen.blit(text, (plt2_offset[0], plt2_offset[1]-50))
         prev_error = render_plt2(error)
 
@@ -1216,55 +1126,23 @@ while 1:
         text = textfont.render("shortcuts: Pause (space), speed up/down(s,d), clear (c)", False, (0, 0, 0))
         screen.blit(text, (offset[0]-150, offset[1]+280))
 
-        #modify PID constants
-        pygame.draw.rect(screen, param_button_color, add_kp, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+kp", True, WHITE)
-        screen.blit(text_surface1, (add_kp.x+5, add_kp.y+5))
-        add_kp.w = max(20, text_surface1.get_width()+10) 
+        #Buttons: modify PID constants
 
-        pygame.draw.rect(screen, param_button_color, sub_kp, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-kp", True, WHITE)
-        screen.blit(text_surface1, (sub_kp.x+5, sub_kp.y+5))
-        sub_kp.w = max(20, text_surface1.get_width()+10) 
+        button(add_kp, "+kp")
+        button(sub_kp, "-kp")
+        button(add_kd, "+kd")
+        button(sub_kd, "-kd")
+        button(add_er, "+pr")
+        button(sub_er, "-pr")
+        button(reset_param, "reset")
+        button(go_back, "back", BLUE)
+        button(sw_plt, txt_switch, color, 5)
 
-        pygame.draw.rect(screen, param_button_color, add_kd, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+kd", True, WHITE)
-        screen.blit(text_surface1, (add_kd.x+5, add_kd.y+5))
-        add_kd.w = max(20, text_surface1.get_width()+10) 
+        button(in_word, user_text, color, 0)
+        button(way_rect, way_nbr, color, 0)
 
-        pygame.draw.rect(screen, param_button_color, sub_kd, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-kd", True, WHITE)
-        screen.blit(text_surface1, (sub_kd.x+5, sub_kd.y+5))
-        sub_kd.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, param_button_color, add_er, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+pr", True, WHITE)
-        screen.blit(text_surface1, (add_er.x+5, add_er.y+5))
-        add_er.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, param_button_color, sub_er, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-pr", True, WHITE)
-        screen.blit(text_surface1, (sub_er.x+5, sub_er.y+5))
-        sub_er.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, param_button_color, reset_param, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("reset", True, WHITE)
-        screen.blit(text_surface1, (reset_param.x+5, reset_param.y+5))
-        reset_param.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, color, sw_plt)
-        text_surface1 = textfont.render(txt_switch, True, WHITE)
-        screen.blit(text_surface1, (sw_plt.x+5, sw_plt.y+5))
-        sw_plt.w = max(100, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, BLUE, go_back, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("Back", True, WHITE)
-        screen.blit(text_surface1, (go_back.x+5, go_back.y+5))
-        go_back.w = max(20, text_surface1.get_width()+10) 
-
-        time_string = 'Time: {} seconds'.format(round(t,1))
-        text = myfont.render(time_string, False, (0, 0, 0))
-        screen.blit(text, (10,40))
+        #text
+        text_var('Time: {} seconds', t, (10,40))
 
         text = textfontXL.render("Write something!", False, (0, 0, 0))
         screen.blit(text, (word_offset[0]-50, word_offset[1]-40))
@@ -1278,33 +1156,10 @@ while 1:
         elif n<len(tdes1_ar) and n>1:
             timer_count = t-start_time
 
-
-        time_taken  = 'Time taken: {} s'.format(round(timer_count,1))
-        text = textfont.render(time_taken, False, (0, 0, 0))
-        screen.blit(text, (way_offset[0], way_offset[1]+40))
-        
-
-        pygame.draw.rect(screen, color, in_word)
-        text_surface = myfont.render(user_text, True, WHITE)
-        screen.blit(text_surface, (in_word.x+5, in_word.y+5))
-        in_word.w = max(100, text_surface.get_width()+10) 
-
-        pygame.draw.rect(screen, color, way_rect)
-        text_surface = myfont.render(way_nbr, True, WHITE)
-        screen.blit(text_surface, (way_rect.x+5, way_rect.y+5))
-        way_rect.w = max(100, text_surface.get_width()+10) 
-
-        constkp = 'kp={}'.format(round(kp,1))
-        text = textfont.render(constkp, False, (0, 0, 0))
-        screen.blit(text, (param_offset[0],param_offset[1]-20))
-
-        constkd = 'kd={}'.format(round(kd,1))
-        text = textfont.render(constkd, False, (0, 0, 0))
-        screen.blit(text, (param_offset[0]+60,param_offset[1]-20))
-
-        precision = 'precision={}%'.format(round(-500*error_accept+100,1))
-        text = textfont.render(precision, False, (0, 0, 0))
-        screen.blit(text, (param_offset[0]+150,param_offset[1]-20))
+        text_var('Time taken: {} s', timer_count, (way_offset[0], way_offset[1]+40))
+        text_var('kp={}', kp, (param_offset[0],param_offset[1]-20))
+        text_var('kd={}', kd, (param_offset[0]+60,param_offset[1]-20))
+        text_var('precision={}%', (-500*error_accept+100), (param_offset[0]+150,param_offset[1]-20))
         
         pygame.draw.circle(screen, RED, offset, int((l1+l2)*100), 2)
         t += del_t
@@ -1321,10 +1176,6 @@ while 1:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if go_back.collidepoint(event.pos):
                     a = intro_get_mode()
-                if in_word.collidepoint(event.pos):
-                    color = color_active
-                    name_path = get_text_input()
-                    color = color_passive
                 if way_rect.collidepoint(event.pos):
                     waypoints()
                 if add_kp.collidepoint(event.pos):
@@ -1366,9 +1217,11 @@ while 1:
                         lvl=2
                     else:
                         lvl=1
+
                     got_obj=False
                     game_over=False
                     game_success=False
+                    game_running = False
                     tdes1_ar = []
                     tdes2_ar = []
                     th1 = 0
@@ -1432,69 +1285,34 @@ while 1:
             text="Back to task 1..."
         text_surface1 = textfontXL.render(text, True, WHITE)
         screen.blit(text_surface1, (lvl_rect.x+5, lvl_rect.y+5))
-        lvl_rect.w = max(20, text_surface1.get_width()+10) 
-        #modify PID constants
-        pygame.draw.rect(screen, param_button_color, add_kp, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+kp", True, WHITE)
-        screen.blit(text_surface1, (add_kp.x+5, add_kp.y+5))
-        add_kp.w = max(20, text_surface1.get_width()+10) 
+        lvl_rect.w = max(20, text_surface1.get_width()+10)
 
-        pygame.draw.rect(screen, param_button_color, sub_kp, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-kp", True, WHITE)
-        screen.blit(text_surface1, (sub_kp.x+5, sub_kp.y+5))
-        sub_kp.w = max(20, text_surface1.get_width()+10) 
 
-        pygame.draw.rect(screen, param_button_color, add_kd, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+kd", True, WHITE)
-        screen.blit(text_surface1, (add_kd.x+5, add_kd.y+5))
-        add_kd.w = max(20, text_surface1.get_width()+10) 
+        #buttons : modify PID constants
 
-        pygame.draw.rect(screen, param_button_color, sub_kd, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-kd", True, WHITE)
-        screen.blit(text_surface1, (sub_kd.x+5, sub_kd.y+5))
-        sub_kd.w = max(20, text_surface1.get_width()+10) 
+        button(add_kp, "+kp")
+        button(sub_kp, "-kp")
+        button(add_kd, "+kd")
+        button(sub_kd, "-kd")
+        button(add_er, "+pr")
+        button(sub_er, "-pr")
+        button(reset_param, "reset")
+        button(go_back, "back", BLUE)
 
-        pygame.draw.rect(screen, param_button_color, add_er, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("+pr", True, WHITE)
-        screen.blit(text_surface1, (add_er.x+5, add_er.y+5))
-        add_er.w = max(20, text_surface1.get_width()+10) 
+        button(way_rect, way_nbr, color, 0)
 
-        pygame.draw.rect(screen, param_button_color, sub_er, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("-pr", True, WHITE)
-        screen.blit(text_surface1, (sub_er.x+5, sub_er.y+5))
-        sub_er.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, param_button_color, reset_param, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("reset", True, WHITE)
-        screen.blit(text_surface1, (reset_param.x+5, reset_param.y+5))
-        reset_param.w = max(20, text_surface1.get_width()+10) 
-
-        pygame.draw.rect(screen, BLUE, go_back, 0, -1, 10,10,10,10)
-        text_surface1 = myfont.render("Back", True, WHITE)
-        screen.blit(text_surface1, (go_back.x+5, go_back.y+5))
-        go_back.w = max(20, text_surface1.get_width()+10) 
-        
-        
         time_string = 'Time: {} seconds'.format(round(t,1))
         text = myfont.render(time_string, False, (0, 0, 0))
         screen.blit(text, (10,40))
 
-        if n==0:
-            timer_count = 0.0
-            stop_flag = False
-        elif n==1:
-            start_time = t
-        elif n<len(tdes1_ar) and n>1:
+        if game_running:
             timer_count = t-start_time
 
-        time_taken  = 'Time taken: {} s'.format(round(timer_count,1))
+        time_taken = 'Time taken: {} s'.format(round(timer_count, 1))
         text = textfont.render(time_taken, False, (0, 0, 0))
         screen.blit(text, (way_offset[0], way_offset[1]+40))
         
-        pygame.draw.rect(screen, color, way_rect)
-        text_surface = myfont.render(way_nbr, True, WHITE)
-        screen.blit(text_surface, (way_rect.x+5, way_rect.y+5))
-        way_rect.w = max(100, text_surface.get_width()+10) 
+
 
         constkp = 'kp={}'.format(round(kp,1))
         text = textfont.render(constkp, False, (0, 0, 0))
