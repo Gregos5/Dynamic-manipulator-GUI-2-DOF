@@ -601,7 +601,7 @@ def get_text_input():
                 loop = 0
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if in_word.collidepoint(event.pos):
-                    word = user_text
+                    word = user_text.lower()
                     loop = 0
             if event.type == pygame.KEYDOWN:
                 if event.key == K_ESCAPE:
@@ -609,7 +609,7 @@ def get_text_input():
                 if event.key == pygame.K_BACKSPACE:
                     user_text = user_text[:-1]
                 if event.key == K_RETURN:
-                    word = user_text
+                    word = user_text.lower()
                     loop = 0
                 else:
                     user_text += event.unicode
