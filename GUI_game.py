@@ -624,6 +624,35 @@ def get_text_input():
     trace.fill(WHITE)
     XYtotheta(word)
     return word
+def get_str(rect):
+    #pause game to get string input, convert to int
+    #button_par ex: add_l1 = pygame.Rect(param_offset[0],param_offset[1], 30, 30)
+    user_str = ''
+    loop = 1
+    text = textfont.render("Enter Float", False, (0, 0, 0))
+    screen.blit(text, (rect.x - 50, rect.y - 50))
+    while loop:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                loop = 0
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if rect.collidepoint(event.pos):
+                    loop = 0
+            if event.type == pygame.KEYDOWN:
+                if event.key == K_ESCAPE:
+                    loop = 0
+                if event.key == pygame.K_BACKSPACE:
+                    user_str = user_str[:-1]
+                if event.key == K_RETURN:
+                    loop = 0
+                else:
+                    user_str += event.unicode
+
+        button(rect, user_str, BLUE, 10)
+        pygame.display.update()
+        clock.tick(60)
+    trace.fill(WHITE)
+    return user_str
 def reset_par():
     global wayx_arr,wayy_arr
     wayx_arr = []
@@ -717,6 +746,13 @@ def text_var(text, variable, offset, rounding = 1):
     var = text.format(round(variable, rounding))
     text1 = textfont.render(var, False, (0, 0, 0))
     screen.blit(text1, offset)
+def var_bound(var, lb, tb):
+    #set boundaries on variables to prevent crash
+    if var >= tb:
+        var = tb
+    elif var<= lb:
+        var=lb
+    return var
 l1,l2,m1,m2,g,damp, kp, kd, error_accept,n = reset_par()
 
 w, h = 1550, 800
@@ -802,7 +838,6 @@ add_m2 = pygame.Rect(param_offset[0]+210,param_offset[1], 30, 30)
 sub_m2 = pygame.Rect(param_offset[0]+210,param_offset[1]+40, 30, 30)
 
 add_dp = pygame.Rect(param_offset[0]+300,param_offset[1], 30, 30)
-
 sub_dp = pygame.Rect(param_offset[0]+300,param_offset[1]+40, 30, 30)
 
 reach = int((l1+l2)*100)
@@ -902,37 +937,20 @@ while 1:
                 if go_back.collidepoint(event.pos):
                     a = intro_get_mode()
                 if add_l1.collidepoint(event.pos):
-                    if l1<2:
-                        l1 += 0.1
-                if sub_l1.collidepoint(event.pos):
-                    if l1>0.1:
-                        l1 -= 0.1
+                    l1 = float(get_str(add_l1))
+                    l1 = var_bound(l1, 0.01,2)
                 if add_l2.collidepoint(event.pos):
-                    if l2<2:
-                        l2 += 0.1
-                if sub_l2.collidepoint(event.pos):
-                    if l2>0.1:
-                        l2 -= 0.1
+                    l2 = float(get_str(add_l2))
+                    l2 = var_bound(l2, 0.01,2)
                 if add_m1.collidepoint(event.pos):
-                    if m1<=5:
-                        m1+=0.2
-                if sub_m1.collidepoint(event.pos):
-                    if m1>0.4:
-                        m1-=0.2
+                    m1  = float(get_str(add_m1))
+                    m1 = var_bound(m1, 0.1, 5)
                 if add_m2.collidepoint(event.pos):
-                    if m2<=5:
-                        m2+=0.2
-                if sub_m2.collidepoint(event.pos):
-                    if m2>0.4:
-                        m2-=0.2
+                    m2 = float(get_str(add_m2))
+                    m2 = var_bound(m2, 0.1, 5)
                 if add_dp.collidepoint(event.pos):
-                    if damp<2:
-                        damp+=0.1
-                if sub_dp.collidepoint(event.pos):
-                    if damp>0.0:
-                        damp-=0.1
-                    if damp <= 0.0:
-                        damp = 0.0
+                    damp = float(get_str(add_dp))
+                    damp = var_bound(damp, 0, 2)
                 if reset_param.collidepoint(event.pos):
                     l1,l2,m1,m2,g,damp, kp, kd, error_accept,n = reset_par()
                 if drop_click.collidepoint(event.pos):
@@ -959,18 +977,12 @@ while 1:
         pygame.draw.circle(screen, BLUE, (int(plt1_offset[0]+prev_angle[0]),int(plt1_offset[1]+prev_angle[1])), 3)
         
         #-------------- Buttons: arm param (l,m,dp, reset) , exit, timer
-        button(add_l1, "+L1")
-        button(sub_l1, "-L1")
-        button(add_l2, "+L2")
-        button(sub_l2, "-L2")
+        button(add_l1, "L1")
+        button(add_l2, "L2")
+        button(add_m1, "m1")
+        button(add_m2, "m2")
+        button(add_dp, "dp")
 
-        button(add_m1, "+m1")
-        button(sub_m1, "-m1")
-        button(add_m2, "+m2")
-        button(sub_m2, "-m2")
-
-        button(add_dp, "+dp")
-        button(sub_dp, "-dp")
 
         button(reset_param, "reset")
 
@@ -1009,7 +1021,7 @@ while 1:
         
 
         
-        #calculate next step
+        #calculate next step different ODE methods
         t += del_t
         if ode==0:
             y = y + RK4_method(y, t, del_t)
@@ -1043,21 +1055,11 @@ while 1:
                 if way_rect.collidepoint(event.pos):
                     waypoints()
                 if add_kp.collidepoint(event.pos):
-                    if kp<30:
-                        kp += 1
-                    kp = kp
-                if sub_kp.collidepoint(event.pos):
-                    if kp>0:
-                        kp -= 1
-                    kp = kp
+                    kp = float(get_str(add_kp))
+                    kp = var_bound(kp, 0,100)
                 if add_kd.collidepoint(event.pos):
-                    if kd<30:
-                        kd += 0.5
-                    kd = kd
-                if sub_kd.collidepoint(event.pos):
-                    if kd>0:
-                        kd -= 0.5
-                    kd = kd
+                    kd = float(get_str(add_kd))
+                    kd = var_bound(kd, 0,100)
                 if sw_plt.collidepoint(event.pos):
                     sw = not sw
                 if sub_er.collidepoint(event.pos):
@@ -1129,9 +1131,7 @@ while 1:
         #Buttons: modify PID constants
 
         button(add_kp, "+kp")
-        button(sub_kp, "-kp")
         button(add_kd, "+kd")
-        button(sub_kd, "-kd")
         button(add_er, "+pr")
         button(sub_er, "-pr")
         button(reset_param, "reset")
@@ -1179,17 +1179,11 @@ while 1:
                 if way_rect.collidepoint(event.pos):
                     waypoints()
                 if add_kp.collidepoint(event.pos):
-                    if kp<50:
-                        kp += 1
-                if sub_kp.collidepoint(event.pos):
-                    if kp>0:
-                        kp -= 1
+                    kp = float(get_str(add_kp))
+                    kp = var_bound(kp, 0, 100)
                 if add_kd.collidepoint(event.pos):
-                    if kd<50:
-                        kd += 0.5
-                if sub_kd.collidepoint(event.pos):
-                    if kd>0:
-                        kd -= 0.5
+                    kd = float(get_str(add_kd))
+                    kd = var_bound(kd, 0, 100)
                 if sub_er.collidepoint(event.pos):
                     if error_accept<0.1:
                         error_accept+=0.01
@@ -1291,9 +1285,7 @@ while 1:
         #buttons : modify PID constants
 
         button(add_kp, "+kp")
-        button(sub_kp, "-kp")
         button(add_kd, "+kd")
-        button(sub_kd, "-kd")
         button(add_er, "+pr")
         button(sub_er, "-pr")
         button(reset_param, "reset")
